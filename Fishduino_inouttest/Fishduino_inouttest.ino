@@ -64,7 +64,7 @@ void loop()
   }
   updateoutputs();
   
-  delay(200);
+  delay(100);
 }
 
 #define D(x) //Serial.println(x); delay(1000);
@@ -122,16 +122,18 @@ void getanaloginputs()
 
 void updateoutputs()
 {
+  // Disable strobe to prevent interference
   digitalWrite(loadout, LOW);
 
-  for (int i = 1; i <= 8; i++)
+  // Shift outputs right to left
+  for (int i = 8; i > 0; i--)
   {
     digitalWrite(clock, LOW);
     digitalWrite(dataout, m[i]);
     digitalWrite(clock, HIGH);
   }
 
-  digitalWrite(dataout, LOW); // Probably unnecessary
   digitalWrite(loadout, HIGH);
+  digitalWrite(loadout, LOW);
 }
 
