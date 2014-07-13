@@ -1,5 +1,12 @@
+// This proof-of-concept application was based on some code I found here:
+// http://www.ftcommunity.de/ftpedia_ausgaben/ftpedia-2014-1.pdf (German)
+// (also see http://www.ftcommunity.de/ftpedia_ausgaben/ftpedia-2014-2.pdf)
+// It does NOT use the FishDuino library, but FishDuino was based on this.
+
 int ledpin = 13;
 
+// NOTE: The article in the PDF linked above has the Arduino wired up
+// to the interface in a different way!
 int datain = 2;
 int trigger[2] = { 3, 4 };
 int dataout = 5;
@@ -7,8 +14,8 @@ int clock = 6;
 int loadout = 7;
 int loadin = 8;
 
-int m[9]; // 0 not used
-int e[9]; // 0 not used
+int m[9]; // index 0 not used
+int e[9]; // index 0 not used
 int a[2];
 
 #define EX a[0]
@@ -96,7 +103,9 @@ void getanaloginputs()
   for (int i = 0; i < 2; i++)
   {
     digitalWrite(trigger[i], LOW);
+    D("trigger low")
     digitalWrite(trigger[i], HIGH);
+    D("trigger high")
     
     unsigned long n = micros();
     unsigned long t = 0;
@@ -116,24 +125,32 @@ void getanaloginputs()
       }
     }
     
+    D(t)
     a[i] = t / 10;
   }  
 }
 
 void updateoutputs()
 {
-  // Disable strobe to prevent interference
   digitalWrite(loadout, LOW);
+  D("strobe off")
 
   // Shift outputs right to left
   for (int i = 8; i > 0; i--)
   {
     digitalWrite(clock, LOW);
+    D("clock low")
     digitalWrite(dataout, m[i]);
+    D(m[i])
     digitalWrite(clock, HIGH);
+    D("clock high")
   }
 
+  // Enable strobe, then disable it again so that the outputs don't change
+  // if we generate clock pulses to read the inputs.
   digitalWrite(loadout, HIGH);
+  D("strobe off")
   digitalWrite(loadout, LOW);
+  D("strobe on")
 }
 
