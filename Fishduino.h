@@ -41,8 +41,6 @@
   |       2       |      19      |         |     | GND
   |       1       |      20      |         |     | GND
   +---------------+--------------+---------+---------------------------------
-
-  NOTE: expansion devices aren't supported yet.
 */
 
 #include <Arduino.h>
@@ -68,6 +66,12 @@ protected:
     pin_NUM                   // Number of pins used
   };
 
+  // Maximum number of interfaces that can be cascaded via the expansion
+  // port on the interface. This number includes the interface that's
+  // directly connected to the Arduino. Performance for the digital inputs
+  // and outputs decreases as more interfaces are attached.
+  enum { MaxInterfaces = 3 };
+
   // Default ISR period in microseconds; e.g. 10000=10ms=100Hz
   enum { DefaultInterval = 3000 };
 
@@ -76,11 +80,15 @@ protected:
   // This is initialized at construction time and not changed afterwards.
   byte m_pin[pin_NUM];
 
+  // Number of devices that are actually cascaded including the one that's
+  // directly connected.
+  byte m_NumInterfaces;
+
   // This tracks the outputs
-  volatile byte m_outdata;
+  volatile byte m_outdata[MaxInterfaces];
 
   // This tracks the digital inputs
-  volatile byte m_indata;
+  volatile byte m_indata[MaxInterfaces];
 
   // Data used by the Interrupt Service Routine.
   // NOTE: There is only one ISR which handles all instances of this class.
@@ -109,14 +117,19 @@ private:
     m_pin[pin_LOADOUT]  = pin_loadout;
     m_pin[pin_LOADIN]   = pin_loadin;
 
-    // Turn all motors off just in case
-    m_outdata = 0;
+    // Reset all internal data
+    for (unsigned u = 0; u < MaxInterfaces; u++)
+    {
+      m_indata[u]  = 0;
+      m_outdata[u] = 0;
+    }
   }
 
 public:
   //-------------------------------------------------------------------------
   // Constructor
   Fishduino(
+    byte NumInterfaces,
     byte pin_datacountin,
     byte pin_triggerx,
     byte pin_triggery,
@@ -124,6 +137,7 @@ public:
     byte pin_clock,
     byte pin_loadout,
     byte pin_loadin)
+    : m_NumInterfaces(NumInterfaces > MaxInterfaces ? MaxInterfaces : NumInterfaces)
   {
     _Fishduino(
       pin_datacountin,
@@ -139,7 +153,9 @@ public:
   //-------------------------------------------------------------------------
   // Simpler constructor for when interface is on consecutive Arduino pins
   Fishduino(
-    byte startpin = 2)
+    byte startpin = 2,
+    byte NumInterfaces = 1)
+    : m_NumInterfaces(NumInterfaces > MaxInterfaces ? MaxInterfaces : NumInterfaces)
   {
     _Fishduino(
       startpin,
@@ -199,9 +215,12 @@ public:
   // The interval is in microseconds; it's only used for the first instance.
   //
   // NOTE: not thread-safe
-  void Setup(
+  bool                                  // Returns True=success False=failure
+  Setup( 
     unsigned long interval = DefaultInterval)
   {
+    bool result = true;
+
     // Prevent interrupts from screwing things up
     // Need to do this before assigning pins, in case pins are shared
     // between instances (this is not tested but should be possible).
@@ -214,32 +233,78 @@ public:
     }
 
     // Initialize the local data and the output pins
-    m_outdata = 0; // All outputs off
-    UpdateOutputs();
-    UpdateInputs();
+    // All outputs off
+    for (unsigned u = 0; u < m_NumInterfaces; u++)
+    {
+      m_outdata[u] = 0;
+    }
+
+    // Must turn interrupts back on to measure time in the next code fragment
+    interrupts();
+
+    // Initialize the output from the interface (our input).
+    // The three possible output sources (the two timers of the analog inputs
+    // and the shift-out pin of the digital inputs) are ORed together and
+    // inverted on the interface. The timers may be in a triggered state,
+    // so we un-trigger them first. The digital input shifter may also be
+    // in any state until we clock it enough times to shift data in from the
+    // open (pulled-down) serial input of the last cascaded interface.
+    // The analog input timers may take up to ~2.5ms to return their outputs
+    // to LOW state (see the Analog() function). If we keep pulsing the
+    // clock while we wait for the timers, all individual sources will
+    // eventually turn LOW, which makes the NOR circuit go HIGH.
+    unsigned long starttime = millis();
+
+    // Un-trigger the analog inputs
     digitalWrite(m_pin[pin_TRIGGERX], HIGH);
     digitalWrite(m_pin[pin_TRIGGERY], HIGH);
 
-    // Update linked list of all instances of our class
-    // This has to be done while interrupts are off
-    if (interval)
+    // Wait until the pin goes HIGH, meaning all outputs are LOW.
+    while (!digitalRead(m_pin[pin_INPUT]))
     {
-      m_next = m_list;                  // Demote the head of the list
-      m_list = this;                    // Make this instance the head
+      digitalWrite(m_pin[pin_CLOCK], LOW);
+      digitalWrite(m_pin[pin_CLOCK], HIGH);
+
+      // Check for time-out. If this happens, something is wrong with the
+      // interface or it is connected wrong.
+      if (millis() - starttime >= 5)
+      {
+        result = false;
+        break;
+      }
     }
 
-    // The list is now in a known state; enable interrupts again before we
-    // call any external functions
-    m_allowisr = true;
-
-    interrupts();
-
-    // If we are the first instance, initialize the timer
-    if ((interval) && (!m_next))
+    if (result)
     {
-      Timer1.initialize(interval);
-      Timer1.attachInterrupt(static_isr);
+      // We're now ready to update the internal data with the actual pins.
+      UpdateOutputs();
+      UpdateInputs();
+
+      // Following code has to be done while interrupts are off
+      noInterrupts();
+
+      // Update linked list of all instances of our class
+      if (interval)
+      {
+        m_next = m_list;                  // Demote the head of the list
+        m_list = this;                    // Make this instance the head
+      }
+
+      // The list is now in a known state; enable interrupts again before we
+      // call any external functions
+      m_allowisr = true;
+
+      interrupts();
+
+      // If we are the first instance, initialize the timer
+      if ((interval) && (!m_next))
+      {
+        Timer1.initialize(interval);
+        Timer1.attachInterrupt(static_isr);
+      }
     }
+
+    return result;
   }
 
 public:
@@ -247,15 +312,20 @@ public:
   // Update the outputs of the interface
   virtual void UpdateOutputs()
   {
-    byte b = m_outdata;
+    byte b;
 
     digitalWrite(m_pin[pin_LOADOUT], LOW);
 
-    for (unsigned u = 0; u < 8; u++, b <<= 1)
+    for (unsigned v = 0; v < m_NumInterfaces; v++)
     {
-      digitalWrite(m_pin[pin_CLOCK], LOW);
-      digitalWrite(m_pin[pin_DATAOUT], (b & 0x80) != 0);
-      digitalWrite(m_pin[pin_CLOCK], HIGH);
+      b = m_outdata[v];
+
+      for (unsigned u = 0; u < 8; u++, b <<= 1)
+      {
+        digitalWrite(m_pin[pin_CLOCK], LOW);
+        digitalWrite(m_pin[pin_DATAOUT], (b & 0x80) != 0);
+        digitalWrite(m_pin[pin_CLOCK], HIGH);
+      }
     }
 
     digitalWrite(m_pin[pin_LOADOUT], HIGH);
@@ -274,7 +344,7 @@ public:
   // This stops the analog timers.
   virtual void UpdateInputs()
   {
-    byte data = 0;
+    byte data;
 
     // Switch the input chip to parallel mode and clock it to load the inputs
     digitalWrite(m_pin[pin_LOADIN], HIGH);
@@ -283,18 +353,23 @@ public:
     digitalWrite(m_pin[pin_LOADIN], LOW);
 
     // Read the inputs
-    for (unsigned u = 0; u < 8; u++)
+    for (unsigned v = 0; v < m_NumInterfaces; v++)
     {
-      data <<= 1;
+      data = 0;
 
-      data |= (digitalRead(m_pin[pin_INPUT]) == LOW);
+      for (unsigned u = 0; u < 8; u++)
+      {
+        data <<= 1;
 
-      digitalWrite(m_pin[pin_CLOCK], LOW);
+        data |= (digitalRead(m_pin[pin_INPUT]) == LOW);
 
-      digitalWrite(m_pin[pin_CLOCK], HIGH);
+        digitalWrite(m_pin[pin_CLOCK], LOW);
+
+        digitalWrite(m_pin[pin_CLOCK], HIGH);
+      }
+
+      m_indata[v] = data;
     }
-
-    m_indata = data;
 
     // At this point:
     // - CLOCK is high
@@ -336,6 +411,8 @@ public:
   // The R/C circuit in the interface is apparently dimensioned to generate
   // a maximum interval of about 2550 microseconds, so we simply measure the
   // time it takes in microseconds, and divide the value by 10.
+  //
+  // Reminder: Analog inputs from cascaded interfaces cannot be read.
   byte Analog(                          // Returns value, 255=not connected
     byte index)                         // 0=X, 1=Y
   {
@@ -377,57 +454,73 @@ public:
   // Stop all motors immediately
   void ResetOutputs()
   {
-    m_outdata = 0;
+    for (unsigned u = 0; u < m_NumInterfaces; u++)
+    {
+      m_outdata[u] = 0;
+    }
   }
 
 public:
   //-------------------------------------------------------------------------
   // Update all outputs
   void AllOutputs(
-    byte b)
+    byte b,
+    byte whichinterface = 0)
   {
-    m_outdata = b;
+    if (whichinterface < m_NumInterfaces)
+    {
+      m_outdata[whichinterface] = b;
+    }
   }
 
 public:
   //-------------------------------------------------------------------------
   // Change digital output
   void Out(
-    byte index,                         // 0..7
+    byte index,                         // 0..(8 * interfaces) - 1
     byte lohi)
   {
-    if (index < 8)
+    if (index < 8 * m_NumInterfaces)
     {
+      unsigned whichinterface = index / 8;
+
       if (lohi)
       {
-        m_outdata |= (1 << index);
+        m_outdata[whichinterface] |= (1 << (index % 8));
       }
       else
       {
-        m_outdata &= ~(1 << index);
+        m_outdata[whichinterface] &= ~(1 << (index % 8));
       }
     }
   }
 
 public:
-  byte AllInputs()
+  byte AllInputs(
+    unsigned whichinterface = 0)
   {
-    return m_indata;
+    byte result = 0;
+
+    if (whichinterface < m_NumInterfaces)
+    {
+      result = m_indata[whichinterface];
+    }
+
+    return result;
   }
 
 public:
   //-------------------------------------------------------------------------
   // Get the given digital input
-  bool In(
-    byte index)                         // Digital input number (0..7)
+  byte In(
+    byte index)                         // 0..(8 * interfaces) - 1
   {
-    bool result;
+    bool result = false;
 
-    noInterrupts();
-
-    result = (0 != ((m_indata >> index) & 1));
-
-    interrupts();
+    if (index < 8 * m_NumInterfaces)
+    {
+      result = (0 != ((m_indata[index / 8] >> (index % 8)) & 1));
+    }
 
     return result;
   }

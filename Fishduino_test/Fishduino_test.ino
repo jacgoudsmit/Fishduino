@@ -3,14 +3,17 @@
 
 #include "Fishduino.h"
 
-Fishduino ft(2);
+Fishduino ft;
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println("Hello!");
 
-  ft.Setup();
+  if (!ft.Setup())
+  {
+    Serial.println("Setup error!");
+  }
 }
 
 void loop()
