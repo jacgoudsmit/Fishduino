@@ -1,0 +1,11 @@
+Fishduino	KEYWORD1
+
+Setup	KEYWORD2
+UpdateOutputs	KEYWORD2
+UpdateInputs	KEYWORD2
+Analog	KEYWORD2
+ResetOutputs	KEYWORD2
+AllOutputs	KEYWORD2
+Out	KEYWORD2
+AllInputs	KEYWORD2
+In	KEYWORD2
