@@ -1,7 +1,5 @@
 
-#include <TimerOne.h>
-
-#include "Fishduino.h"
+#include <Fishduino.h>
 
 Fishduino ft;
 
@@ -18,19 +16,27 @@ void setup()
 
 void loop()
 {
-  for (int i = 0; i < 8; i++)
+  byte data[ft.MaxInterfaces];
+
+  ft.GetInputs( sizeof(data), data);
+  ft.SetOutputs(sizeof(data), data);
+
+  for (unsigned u = 0; u < sizeof(data); u++)
   {
-    bool b = ft.In(i);
+    byte b = data[u];
 
-    Serial.print(b ? '1' : '0');
+    for (unsigned v = 0; v < 8; v++)
+    {
+      Serial.print(((b & (1 << v)) != 0) ? '1' : '0');
+    }
 
-    ft.Out(i, b);
+    Serial.print(' ');
   }
   Serial.println();
 
   for (int i = 0; i < 2; i++)
   {
-    Serial.print(ft.Analog(i));
+    Serial.print(ft.GetAnalog(i));
     Serial.print(' ');
   }
   Serial.println();

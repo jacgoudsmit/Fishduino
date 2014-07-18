@@ -1,8 +1,49 @@
-/*
-  Schematic at http://www.fischertechnik-fans.de/Images/pischaltplan.gif
-  Some code based on an article in http://www.ftcommunity.de/ftpedia_ausgaben/ftpedia-2014-1.pdf
+/****************************************************************************
+Copyright (c) 2014, Jac Goudsmit
+All rights reserved.
 
-  20-pole ribbon cable pinout. Directions relative to host (Arduino).
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+* Neither the name of the {organization} nor the names of its
+contributors may be used to endorse or promote products derived from
+this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+****************************************************************************/
+
+
+/*
+  This library provides code to control the FischerTechnik 
+  30520 Universal Parallel Interface.
+  It probably also works with the older 30566 but this wasn't tested.
+
+  Schematic at:
+  http://www.fischertechnik-fans.de/Images/pischaltplan.gif
+  
+  Code based on articles in the following two German PDF magazines:
+  http://www.ftcommunity.de/ftpedia_ausgaben/ftpedia-2014-1.pdf
+  http://www.ftcommunity.de/ftpedia_ausgaben/ftpedia-2014-2.pdf
+
+  20-pole ribbon cable pinout
+  ===========================
+  Signal directions relative to host (Arduino).
   The pin numbers on the PCB in the 30520 interface are printed
   backwards (20<->1, 19<->2 etc).
   The analog inputs (EX and EY) run from the Fischertechnik side of the
@@ -45,56 +86,38 @@
 
 #include <Arduino.h>
 
-#include "TimerOne.h"   // https://github.com/PaulStoffregen/TimerOne
-
 class Fishduino
 {
 protected:
   // These values are used to index the pin array
   enum 
   {
-                              //                Interface pin / Arduino pin (default)
-    pin_INPUT,                // DATA/COUNT IN  3  / 2
-    pin_TRIGGERX,             // TRIGGER X      9  / 3
-    pin_TRIGGERY,             // TRIGGER Y      10 / 4
-    pin_DATAOUT,              // DATA OUT       11 / 5
-    pin_CLOCK,                // CLOCK          12 / 6
-    pin_LOADOUT,              // LOAD OUT       13 / 7
-    pin_LOADIN,               // LOAD IN        14 / 8
+                                        // Pin name / Interface pin / 
+                                        //   Default Arduino pin
+    DATACOUNTIN,                        // DATA/COUNT IN  3  / 2
+    TRIGGERX,                           // TRIGGER X      9  / 3
+    TRIGGERY,                           // TRIGGER Y      10 / 4
+    DATAOUT,                            // DATA OUT       11 / 5
+    CLOCK,                              // CLOCK          12 / 6
+    LOADOUT,                            // LOAD OUT       13 / 7
+    LOADIN,                             // LOAD IN        14 / 8
 
     // Helper
-    pin_NUM                   // Number of pins used
+    NumPins                             // Number of pins used
   };
-
-  // Maximum number of interfaces that can be cascaded via the expansion
-  // port on the interface. This number includes the interface that's
-  // directly connected to the Arduino. Performance for the digital inputs
-  // and outputs decreases as more interfaces are attached.
-  enum { MaxInterfaces = 3 };
-
-  // Default ISR period in microseconds; e.g. 10000=10ms=100Hz
-  enum { DefaultInterval = 3000 };
 
   // Array that defines which interface pin is connected to which Arduino pin
   // See enum definition above for indexes.
   // This is initialized at construction time and not changed afterwards.
-  byte m_pin[pin_NUM];
+  byte m_pin[NumPins];
 
-  // Number of devices that are actually cascaded including the one that's
-  // directly connected.
-  byte m_NumInterfaces;
-
-  // This tracks the outputs
-  volatile byte m_outdata[MaxInterfaces];
-
-  // This tracks the digital inputs
-  volatile byte m_indata[MaxInterfaces];
-
-  // Data used by the Interrupt Service Routine.
-  // NOTE: There is only one ISR which handles all instances of this class.
-  bool m_allowisr;                      // False=skip processing for instance
-  static Fishduino * volatile m_list;   // List of all instances
-  Fishduino * volatile m_next;          // Link to next instance
+public:
+  // Miscellaneous constants
+  enum
+  {
+    AnalogTimeout = 3000,               // Analog timeout in microseconds
+    MaxInterfaces = 4,                  // Max number of interfaces supported
+  };
 
 private:
   //-------------------------------------------------------------------------
@@ -109,27 +132,22 @@ private:
     byte pin_loadin)
   {
     // Initialize Arduino pin numbers for each pin on the interface
-    m_pin[pin_INPUT]    = pin_datacountin;
-    m_pin[pin_TRIGGERX] = pin_triggerx;
-    m_pin[pin_TRIGGERY] = pin_triggery;
-    m_pin[pin_DATAOUT]  = pin_dataout;
-    m_pin[pin_CLOCK]    = pin_clock;
-    m_pin[pin_LOADOUT]  = pin_loadout;
-    m_pin[pin_LOADIN]   = pin_loadin;
+    m_pin[DATACOUNTIN]    = pin_datacountin;
+    m_pin[TRIGGERX] = pin_triggerx;
+    m_pin[TRIGGERY] = pin_triggery;
+    m_pin[DATAOUT]  = pin_dataout;
+    m_pin[CLOCK]    = pin_clock;
+    m_pin[LOADOUT]  = pin_loadout;
+    m_pin[LOADIN]   = pin_loadin;
 
-    // Reset all internal data
-    for (unsigned u = 0; u < MaxInterfaces; u++)
-    {
-      m_indata[u]  = 0;
-      m_outdata[u] = 0;
-    }
+    // Reset outputs, initialize input
+    Setup();
   }
 
 public:
   //-------------------------------------------------------------------------
   // Constructor
   Fishduino(
-    byte NumInterfaces,
     byte pin_datacountin,
     byte pin_triggerx,
     byte pin_triggery,
@@ -137,7 +155,6 @@ public:
     byte pin_clock,
     byte pin_loadout,
     byte pin_loadin)
-    : m_NumInterfaces(NumInterfaces > MaxInterfaces ? MaxInterfaces : NumInterfaces)
   {
     _Fishduino(
       pin_datacountin,
@@ -153,9 +170,7 @@ public:
   //-------------------------------------------------------------------------
   // Simpler constructor for when interface is on consecutive Arduino pins
   Fishduino(
-    byte startpin = 2,
-    byte NumInterfaces = 1)
-    : m_NumInterfaces(NumInterfaces > MaxInterfaces ? MaxInterfaces : NumInterfaces)
+    byte startpin = 2)
   {
     _Fishduino(
       startpin,
@@ -169,360 +184,75 @@ public:
 
 public:
   //-------------------------------------------------------------------------
-  // Destructor
-  virtual ~Fishduino()
-  {
-    // Disable interrupts so the ISR won't interfere
-    noInterrupts();
-
-    // Remove our instance from the linked list
-    if (m_list == this)
-    {
-      // Trivial case: We're at the top of the list
-      m_list = m_next;
-    }
-    else
-    {
-      // Walk through the list and find us
-      for (Fishduino volatile *p = m_list; p; p = p->m_next)
-      {
-        if (p->m_next == this)
-        {
-          // Found our predecessor, remove us
-          p->m_next = m_next;
-          break;
-        }
-      }
-    }
-
-    // Re-enable interrupts before calling external functions
-    // The linked list is valid at this point so if the ISR gets called,
-    // it won't handle our instance anyway which is OK.
-    interrupts();
-
-    // If we were the last remaining instance, detach the ISR.
-    if (!m_list)
-    {
-      Timer1.detachInterrupt();
-    }
-
-  }
-
-public:
-  //-------------------------------------------------------------------------
   // Initialize
   //
-  // The interval is in microseconds; it's only used for the first instance.
+  // Initializes the port mode for all pins, and resets the outputs.
+  // The input shift registers and timers are returned to a known state, so
+  // the interface(s) is/are ready to read reliable values for digital and
+  // analog inputs.
   //
-  // NOTE: not thread-safe
+  // The function returns false if the input can't be returned to a known
+  // state in a reasonable time. This may indicate that no interface is
+  // connected, or that something is wrong with it.
+  //
+  // This function is called by the constructor, but it can also be called
+  // when you want to return the state of the interface to a known state.
   bool                                  // Returns True=success False=failure
-  Setup( 
-    unsigned long interval = DefaultInterval)
-  {
-    bool result = true;
-
-    // Prevent interrupts from screwing things up
-    // Need to do this before assigning pins, in case pins are shared
-    // between instances (this is not tested but should be possible).
-    noInterrupts();
-
-    // Initialize pins
-    for (unsigned u = 0; u < pin_NUM; u++)
-    {
-      pinMode(m_pin[u], u == pin_INPUT ? INPUT : OUTPUT);
-    }
-
-    // Initialize the local data and the output pins
-    // All outputs off
-    for (unsigned u = 0; u < m_NumInterfaces; u++)
-    {
-      m_outdata[u] = 0;
-    }
-
-    // Must turn interrupts back on to measure time in the next code fragment
-    interrupts();
-
-    // Initialize the output from the interface (our input).
-    // The three possible output sources (the two timers of the analog inputs
-    // and the shift-out pin of the digital inputs) are ORed together and
-    // inverted on the interface. The timers may be in a triggered state,
-    // so we un-trigger them first. The digital input shifter may also be
-    // in any state until we clock it enough times to shift data in from the
-    // open (pulled-down) serial input of the last cascaded interface.
-    // The analog input timers may take up to ~2.5ms to return their outputs
-    // to LOW state (see the Analog() function). If we keep pulsing the
-    // clock while we wait for the timers, all individual sources will
-    // eventually turn LOW, which makes the NOR circuit go HIGH.
-    unsigned long starttime = millis();
-
-    // Un-trigger the analog inputs
-    digitalWrite(m_pin[pin_TRIGGERX], HIGH);
-    digitalWrite(m_pin[pin_TRIGGERY], HIGH);
-
-    // Wait until the pin goes HIGH, meaning all outputs are LOW.
-    while (!digitalRead(m_pin[pin_INPUT]))
-    {
-      digitalWrite(m_pin[pin_CLOCK], LOW);
-      digitalWrite(m_pin[pin_CLOCK], HIGH);
-
-      // Check for time-out. If this happens, something is wrong with the
-      // interface or it is connected wrong.
-      if (millis() - starttime >= 5)
-      {
-        result = false;
-        break;
-      }
-    }
-
-    if (result)
-    {
-      // We're now ready to update the internal data with the actual pins.
-      UpdateOutputs();
-      UpdateInputs();
-
-      // Following code has to be done while interrupts are off
-      noInterrupts();
-
-      // Update linked list of all instances of our class
-      if (interval)
-      {
-        m_next = m_list;                  // Demote the head of the list
-        m_list = this;                    // Make this instance the head
-      }
-
-      // The list is now in a known state; enable interrupts again before we
-      // call any external functions
-      m_allowisr = true;
-
-      interrupts();
-
-      // If we are the first instance, initialize the timer
-      if ((interval) && (!m_next))
-      {
-        Timer1.initialize(interval);
-        Timer1.attachInterrupt(static_isr);
-      }
-    }
-
-    return result;
-  }
+  Setup();
 
 public:
   //-------------------------------------------------------------------------
-  // Update the outputs of the interface
-  virtual void UpdateOutputs()
-  {
-    byte b;
-
-    digitalWrite(m_pin[pin_LOADOUT], LOW);
-
-    for (unsigned v = 0; v < m_NumInterfaces; v++)
-    {
-      b = m_outdata[v];
-
-      for (unsigned u = 0; u < 8; u++, b <<= 1)
-      {
-        digitalWrite(m_pin[pin_CLOCK], LOW);
-        digitalWrite(m_pin[pin_DATAOUT], (b & 0x80) != 0);
-        digitalWrite(m_pin[pin_CLOCK], HIGH);
-      }
-    }
-
-    digitalWrite(m_pin[pin_LOADOUT], HIGH);
-    digitalWrite(m_pin[pin_LOADOUT], LOW);
-
-    // At this point:
-    // - CLOCK is HIGH
-    // - DATA OUT is LOW
-    // - LOAD OUT is LOW
-  }
+  // Set the outputs of the interfaces
+  //
+  // This has to be called every 500ms or so, otherwise a timer in the
+  // interface turns the outputs off. A good way to guarantee this is to
+  // use a timer interrupt. The least significant bit in each byte is O1.
+  //
+  // When motors are attached, the FischerTechnik software sets the lower
+  // motor ports (O1, O3, O5, O7, i.e. bits 0, 2, 4, 6) when it shows
+  // the motors to run counter-clockwise. It sets the higher motor ports
+  // (O2, O4, O6, O8, i.e. bits 1, 3, 5, 7) when it shows the motors to run
+  // clockwise.
+  //
+  // The first byte in the array is the interface that's directly connected
+  // to the Arduino. Any further bytes represent the outputs on cascaded
+  // interfaces on the expansion port of the first interface.
+  //
+  // Note: it's safe to specify more interfaces than are actually attached,
+  // it will just take slightly longer to process. However if the caller
+  // specifies fewer interfaces than are actually attached, the "unclaimed"
+  // interfaces will get outputs turned off and on based on garbage data.
+  void SetOutputs(
+    unsigned num_interfaces,            // Number of interfaces
+    const byte *values);                // 1 byte per interface (NULL=reset)
 
 public:
   //-------------------------------------------------------------------------
-  // Read the digital inputs from the interface
+  // Read the digital inputs from the interfaces
   //
-  // This stops the analog timers.
-  virtual void UpdateInputs()
-  {
-    byte data;
-
-    // Switch the input chip to parallel mode and clock it to load the inputs
-    digitalWrite(m_pin[pin_LOADIN], HIGH);
-    digitalWrite(m_pin[pin_CLOCK], LOW);
-    digitalWrite(m_pin[pin_CLOCK], HIGH);
-    digitalWrite(m_pin[pin_LOADIN], LOW);
-
-    // Read the inputs
-    for (unsigned v = 0; v < m_NumInterfaces; v++)
-    {
-      data = 0;
-
-      for (unsigned u = 0; u < 8; u++)
-      {
-        data <<= 1;
-
-        data |= (digitalRead(m_pin[pin_INPUT]) == LOW);
-
-        digitalWrite(m_pin[pin_CLOCK], LOW);
-
-        digitalWrite(m_pin[pin_CLOCK], HIGH);
-      }
-
-      m_indata[v] = data;
-    }
-
-    // At this point:
-    // - CLOCK is high
-    // - LOAD IN is LOW
-  }
-
-protected:
-  //-------------------------------------------------------------------------
-  // Interrupt Service Routine (thiscall version)
+  // The first byte in the array is the interface that's directly connected
+  // to the Arduino. The lowest significant bit in each bit is input I1.
   //
-  // This gets called on a regular basis for each existing instance.
-  virtual void isr()
-  {
-    UpdateInputs();
-    UpdateOutputs();
-  }
-
-protected:
-  //-------------------------------------------------------------------------
-  // Interrupt Service Routine (static version)
-  //
-  // This gets called by the timer interrupt
-  static void static_isr()
-  {
-    for (Fishduino *p = m_list; p; p = p->m_next)
-    {
-      if (p->m_allowisr)
-      {
-        p->isr();
-      }
-    }
-  }
+  // Note: it's safe to specify more interfaces than are actually attached.
+  // The non-attached interfaces will appear to have their digital inputs
+  // set to 0. However if the caller specifies too few interfaces, the
+  // following analog read may fail.
+  void GetInputs(
+    unsigned num_interfaces,            // Number of connected interfaces
+    byte *values);                      // One byte per interface
 
 public:
   //-------------------------------------------------------------------------
   // Get an analog input
   //
-  // This takes a while (up to ~2.5ms) so this is done outside the ISR.
-  // The R/C circuit in the interface is apparently dimensioned to generate
-  // a maximum interval of about 2550 microseconds, so we simply measure the
-  // time it takes in microseconds, and divide the value by 10.
+  // The return value is in microseconds. The R/C circuit in the interface
+  // is dimensioned to generate a maximum interval of about 2.8 milliseconds
+  // with a 5K potentiometer, but if no potentiometer is attached, the
+  // function will return with AnalogTimeout as result.
   //
   // Reminder: Analog inputs from cascaded interfaces cannot be read.
-  byte Analog(                          // Returns value, 255=not connected
-    byte index)                         // 0=X, 1=Y
-  {
-    byte trigger = m_pin[index ? pin_TRIGGERY : pin_TRIGGERX];
-
-    // Turn interrupts off, this function takes a while and shouldn't be done
-    // inside an ISR
-    m_allowisr = false;
-
-    digitalWrite(trigger, LOW);
-    digitalWrite(trigger, HIGH);
-
-    unsigned long n;
-    unsigned long t = 0;
-
-    // Empirical evidence shows that the timer output stays low
-    // between approximately 240 and 2550 microseconds.
-    // There is no official documentation about this, but it's
-    // probably not a coincidence, so wait for a maximum of
-    // 2550 microseconds and divide the result by 10 to get a
-    // value between 20 and 255.
-    for (n = micros(); digitalRead(m_pin[pin_INPUT]) == LOW; )
-    {
-      t = micros() - n;
-      if (t > 2550)
-      {
-        break;
-      }
-    }
-
-    // Enable interrupts again
-    m_allowisr = true;
-
-    return t / 10;
-  }
-
-public:
-  //-------------------------------------------------------------------------
-  // Stop all motors immediately
-  void ResetOutputs()
-  {
-    for (unsigned u = 0; u < m_NumInterfaces; u++)
-    {
-      m_outdata[u] = 0;
-    }
-  }
-
-public:
-  //-------------------------------------------------------------------------
-  // Update all outputs
-  void AllOutputs(
-    byte b,
-    byte whichinterface = 0)
-  {
-    if (whichinterface < m_NumInterfaces)
-    {
-      m_outdata[whichinterface] = b;
-    }
-  }
-
-public:
-  //-------------------------------------------------------------------------
-  // Change digital output
-  void Out(
-    byte index,                         // 0..(8 * interfaces) - 1
-    byte lohi)
-  {
-    if (index < 8 * m_NumInterfaces)
-    {
-      unsigned whichinterface = index / 8;
-
-      if (lohi)
-      {
-        m_outdata[whichinterface] |= (1 << (index % 8));
-      }
-      else
-      {
-        m_outdata[whichinterface] &= ~(1 << (index % 8));
-      }
-    }
-  }
-
-public:
-  byte AllInputs(
-    unsigned whichinterface = 0)
-  {
-    byte result = 0;
-
-    if (whichinterface < m_NumInterfaces)
-    {
-      result = m_indata[whichinterface];
-    }
-
-    return result;
-  }
-
-public:
-  //-------------------------------------------------------------------------
-  // Get the given digital input
-  byte In(
-    byte index)                         // 0..(8 * interfaces) - 1
-  {
-    bool result = false;
-
-    if (index < 8 * m_NumInterfaces)
-    {
-      result = (0 != ((m_indata[index / 8] >> (index % 8)) & 1));
-    }
-
-    return result;
-  }
+  unsigned                              // Returns time (us), see above
+  GetAnalog(
+    byte index);                        // 0=X, 1=Y
 };
 
