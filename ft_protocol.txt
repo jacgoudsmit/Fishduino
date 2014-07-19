@@ -1,0 +1,189 @@
+Description of the serial FischerTechnik interface
+==================================================
+
+FischerTechnik created the following computer interfaces:
+30566  (1984) Original parallel interface (also 30562 (C64), 30563 (Apple 
+              II), 30565 (Schneider))
+30520  (1991) Improved parallel interface with expansion bus, different 
+              adapters for each computer
+30402  (1997) "Intelligent Interface": RS-232, microcontroller
+93293  (2004) "Robo Interface": RS-232 and USB, microcontroller, extra 
+              expansion, extra inputs
+500995 (2009) "Robo TX Controller": USB, Bluetooth, LCD screen, I2C, RS-485
+508777 (2010) "Robo LT Controller": USB, fewer connections (LT="Light")
+522429 (2014) "Robotics TXT Controller": USB, Bluetooth, color touch screen
+
+The following is the protocol used by the 30402 interface in "online" mode.
+
+See: http://www.fischertechnik-fans.de/html/Tipps/lptinterfacemodern.php
+
+On the above page, you can download a ZIP file with the schematic and source
+code (GPL license) of a project by Axel Schmitt, to set up a PIC 
+microcontroller to emulate the FischerTechnik 20402 "Intelligent Interface"
+online mode. The source code contains a protocol description in German from
+the original documentation. That information is difficult to find online,
+so I'm translating it here. I also improved the layout a little.
+
+The original German text was (C) Copyright FischerTechnik.
+
+Translation (C) Jac Goudsmit, licensed under Creative Commons CC-BY-SA.
+
+=============================================================================
+
+1.1 Interface setup
+===================
+
+Baudrate        9600
+Databits           8
+Parity          none
+Stopbits           1
+
+
+1.2 Communication
+=================
+
+To control the interface, basically two bytes should be sent. The first byte
+is the interface command (see below) and the second byte contains the motor
+state.
+
+The motor state describes which motors should be started in which direction.
+Depending on the interface command, the interface replies with one or three
+bytes.
+
+First byte: Interface command
++----------+-----+---------+------------------------------------------------+
+| Binary   | Hex | Decimal | Description                                    |
++----------+-----+---------+------------------------------------------------+
+| 11000001 | C1  | 193     | Only I/O state                                 |
+| 11000101 | C5  | 197     | I/O state and analog value EX                  |
+| 11001001 | C9  | 201     | I/O state and analog value EY                  |
++----------+-----+---------+------------------------------------------------+
+
+Second byte: Motor state
++------+--------------------------------------------------------------------+
+| Bits | Description                                                        |
++------+--------------------------------------------------------------------+
+| 1    | Motor 1 counter-clockwise                                          |
+| 2    | Motor 1 clockwise                                                  |
+| 3    | Motor 2 counter-clockwise                                          |
+| 4    | Motor 2 clockwise                                                  |
+| 5    | Motor 3 counter-clockwise                                          |
+| 6    | Motor 3 clockwise                                                  |
+| 7    | Motor 4 counter-clockwise                                          |
+| 8    | Motor 4 clockwise                                                  |
++------+--------------------------------------------------------------------+
+
+It's possible to start all 4 motors simultaneously. However if both the
+counter-clockwise and clockwise bits of a motor are set, the motor won't
+run, and a lightbulb won't light up.
+
+
+1.3 Replies from the interface
+==============================
+
++---------+-------------+---------------------------------------------------+
+| Command | Reply bytes | Description                                       |
++---------+-------------+---------------------------------------------------+
+| 193     | one byte    | Each bit represents the value of an input         |
++---------+-------------+---------------------------------------------------+
+| 197     | three bytes | First byte see above                              |
+|         |             | Second and third byte analog input EX             |
++---------+-------------+---------------------------------------------------+
+| 201     | three bytes | First byte see above                              |
+|         |             | Second and third byte analog input EY             |
++---------+-------------+---------------------------------------------------+
+
+In general, programming should be done in threads. If the interface doesn't
+get a command every 300 ms, the motors are turned off automatically.
+
+
+2 Intelligent Interface with extension module 16554
+===================================================
+
+
+2.1 Interface setup
+===================
+
+Baudrate        9600
+Databits           8
+Parity          none
+Stopbits           1
+
+
+2.2 Communication
+=================
+
+To control the extension module, basically three bytes should be sent. The
+first byte is the interface command (see below), the second byte contains
+the motor state of the Intelligent Interface (interface 1), and the third
+byte contains the motor state of the extension module (interface 2).
+
+The motor state describes which motors should be started in which direction.
+Depending on the interface command, the interface replies with two or four
+bytes.
+
+The interface commands (193, 197, 201) which control only interface 1, can
+still be used (see 1.2).
+
+First byte: Interface command for extension module
++----------+-----+---------+------------------------------------------------+
+| Binary   | Hex | Decimal | Description                                    |
++----------+-----+---------+------------------------------------------------+
+| 11000010 | C2  | 194     | Only I/O state of interface 1 and 2            |
+| 11000110 | C6  | 198     | I/O state interface 1 and 2, analog value EX   |
+| 11001010 | CA  | 202     | I/O state interface 1 and 2, analog value EY   |
++----------+-----+---------+------------------------------------------------+
+
+Second byte: Motor state for interface 1
++------+--------------------------------------------------------------------+
+| Bits | Description                                                        |
++------+--------------------------------------------------------------------+
+| 1    | Motor 1 counter-clockwise                                          |
+| 2    | Motor 1 clockwise                                                  |
+| 3    | Motor 2 counter-clockwise                                          |
+| 4    | Motor 2 clockwise                                                  |
+| 5    | Motor 3 counter-clockwise                                          |
+| 6    | Motor 3 clockwise                                                  |
+| 7    | Motor 4 counter-clockwise                                          |
+| 8    | Motor 4 clockwise                                                  |
++------+--------------------------------------------------------------------+
+
+Third byte: Motor state for interface 2
++------+--------------------------------------------------------------------+
+| Bits | Description                                                        |
++------+--------------------------------------------------------------------+
+| 1    | Motor 1 counter-clockwise (motor 5 in the software)                |
+| 2    | Motor 1 clockwise         (motor 5 in the software)                |
+| 3    | Motor 2 counter-clockwise (motor 6 in the software)                |
+| 4    | Motor 2 clockwise         (motor 6 in the software)                |
+| 5    | Motor 3 counter-clockwise (motor 7 in the software)                |
+| 6    | Motor 3 clockwise         (motor 7 in the software)                |
+| 7    | Motor 4 counter-clockwise (motor 8 in the software)                |
+| 8    | Motor 4 clockwise         (motor 8 in the software)                |
++------+--------------------------------------------------------------------+
+
+It's possible to start all 8 motors simultaneously. However if both the
+counter-clockwise and clockwise bits of a motor are set, the motor won't
+run, and a lightbulb won't light up.
+
+
+1.3 Replies from the interface
+==============================
+
++---------+-------------+---------------------------------------------------+
+| Command | Reply bytes | Description                                       |
++---------+-------------+---------------------------------------------------+
+| 194     | two bytes   | Each bit represents the value of an input         |
+|         |             | First byte interface 1                            |
+|         |             | Second byte interface 2                           |
++---------+-------------+---------------------------------------------------+
+| 198     | four bytes  | First and second byte see above                   |
+|         |             | Third and fourth byte analog input EX interface 1 |
++---------+-------------+---------------------------------------------------+
+| 202     | four bytes  | First and second byte see above                   |
+|         |             | Third and fourth byte analog input EY interface 1 |
++---------+-------------+---------------------------------------------------+
+
+In general, programming should be done in threads. If the interface doesn't
+get a command every 300 ms, the motors are turned off automatically.
+
