@@ -42,7 +42,7 @@ Fishduino::Setup()
   // Initialize pins
   for (unsigned u = 0; u < NumPins; u++)
   {
-    pinMode(m_pin[u], u == INPUT ? INPUT : OUTPUT);
+    pinMode(m_pin[u], u == DATACOUNTIN ? INPUT : OUTPUT);
   }
 
   // Reset all outputs
