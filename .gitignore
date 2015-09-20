@@ -7,3 +7,4 @@ Visual Micro/
 *.vcxproj
 *.vcxproj.filters
 *.vcxproj.user
+*.opensdf
