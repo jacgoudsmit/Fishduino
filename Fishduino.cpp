@@ -35,9 +35,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //-------------------------------------------------------------------------
 // Initialize
 bool                                  // Returns True=success False=failure
-Fishduino::Setup()
+Fishduino::Reset(
+  byte num_interfaces)
 {
   bool result = true;
+
+  SetNumInterfaces(num_interfaces);
 
   // Initialize pins
   for (unsigned u = 0; u < NumPins; u++)
@@ -46,7 +49,7 @@ Fishduino::Setup()
   }
 
   // Reset all outputs
-  SetOutputs(MaxInterfaces, NULL);
+  SetOutputs(NULL);
 
   // Initialize the output from the interface (our input).
   // The three possible output sources (the two timers of the analog inputs
@@ -86,17 +89,23 @@ Fishduino::Setup()
 //-------------------------------------------------------------------------
 // Set the outputs of the interfaces
 void Fishduino::SetOutputs(
-  unsigned num_interfaces,            // Number of interfaces
   const byte *values)                 // 1 byte per interface (NULL=reset)
 {
-  byte b;
-
   digitalWrite(m_pin[LOADOUT], LOW);
 
-  const byte *p = values + num_interfaces;
-  for (unsigned v = 0; v < num_interfaces; v++)
+  // Note: the following pointer is invalid is NULL is passed.
+  // That's okay, we won't dereference it in that case anyway.
+  const byte *p = values + m_num_interfaces;
+
+  // Send enough output bits for the known number of interfaces.
+  // If NULL is passed, send the maximum number of bits. This is sort of a
+  // security feature so that "unclaimed" interfaces are cleared too.
+  // Note, however, that if you call the function with a non-NULL parameter,
+  // any unclaimed interfaces will get bogus output data.
+  for (unsigned v = 0; v < (values ? m_num_interfaces : MaxInterfaces); v++)
   {
-    b = values ? *--p : 0;
+    // Output bits
+    byte b = values ? *--p : 0;
 
     for (unsigned u = 0; u < 8; u++, b <<= 1)
     {
@@ -118,7 +127,6 @@ void Fishduino::SetOutputs(
 //-------------------------------------------------------------------------
 // Read the digital inputs from the interfaces
 void Fishduino::GetInputs(
-  unsigned num_interfaces,            // Number of connected interfaces
   byte *values)                       // One byte per interface
 {
   // Switch the input chip to parallel mode and clock it to load the inputs
@@ -131,7 +139,7 @@ void Fishduino::GetInputs(
   {
     byte data;
 
-    for (unsigned v = 0; v < num_interfaces; v++)
+    for (unsigned v = 0; v < m_num_interfaces; v++)
     {
       data = 0;
 

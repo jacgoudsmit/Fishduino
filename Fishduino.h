@@ -88,9 +88,17 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class Fishduino
 {
+public:
+  // Miscellaneous constants
+  enum
+  {
+    AnalogTimeout = 3000,               // Analog timeout in microseconds
+    MaxInterfaces = 4,                  // Max number of interfaces supported
+  };
+
 protected:
   // These values are used to index the pin array
-  enum 
+   enum 
   {
                                         // Pin name / Interface pin / 
                                         //   Default Arduino pin
@@ -111,18 +119,22 @@ protected:
   // This is initialized at construction time and not changed afterwards.
   byte m_pin[NumPins];
 
-public:
-  // Miscellaneous constants
-  enum
-  {
-    AnalogTimeout = 3000,               // Analog timeout in microseconds
-    MaxInterfaces = 4,                  // Max number of interfaces supported
-  };
+protected:
+  // Number of interfaces configured
+  //
+  // NOTE: It's okay to configure more interfaces than the number that are
+  // actually attached, it will just slow things down a bit and you will
+  // get bogus input pin information from the interfaces that aren't 
+  // actually there.
+  // If you configure too few interfaces, the ones you don't configure will
+  // get their output pins set to bogus values.
+  byte m_num_interfaces;
 
 private:
   //-------------------------------------------------------------------------
   // Constructor helper
-  void _Fishduino(
+  void Init(
+    byte num_interfaces,
     byte pin_datacountin,
     byte pin_triggerx,
     byte pin_triggery,
@@ -141,7 +153,7 @@ private:
     m_pin[LOADIN]   = pin_loadin;
 
     // Reset outputs, initialize input
-    Setup();
+    Reset(num_interfaces);
   }
 
 public:
@@ -154,9 +166,11 @@ public:
     byte pin_dataout,
     byte pin_clock,
     byte pin_loadout,
-    byte pin_loadin)
+    byte pin_loadin,
+    byte num_interfaces = 1)
   {
-    _Fishduino(
+    Init(
+      num_interfaces,
       pin_datacountin,
       pin_triggerx,
       pin_triggery,
@@ -168,11 +182,13 @@ public:
 
 public:
   //-------------------------------------------------------------------------
-  // Simpler constructor for when interface is on consecutive Arduino pins
+  // Simpler constructor for when connected to consecutive Arduino pins
   Fishduino(
-    byte startpin = 2)
+    byte startpin = 2,
+    byte num_interfaces = 1)
   {
-    _Fishduino(
+    Init(
+      num_interfaces,
       startpin,
       startpin + 1,
       startpin + 2,
@@ -184,7 +200,16 @@ public:
 
 public:
   //-------------------------------------------------------------------------
-  // Initialize
+  // Set the number of interfaces for following operations
+  void SetNumInterfaces(
+    byte num_interfaces)
+  {
+    m_num_interfaces = constrain(num_interfaces, 1, MaxInterfaces);
+  }
+
+public:
+  //-------------------------------------------------------------------------
+  // Reset the connection to the interface
   //
   // Initializes the port mode for all pins, and resets the outputs.
   // The input shift registers and timers are returned to a known state, so
@@ -198,7 +223,8 @@ public:
   // This function is called by the constructor, but it can also be called
   // when you want to return the state of the interface to a known state.
   bool                                  // Returns True=success False=failure
-  Setup();
+  Reset(
+    byte num_interfaces = 1);
 
 public:
   //-------------------------------------------------------------------------
@@ -206,25 +232,31 @@ public:
   //
   // This has to be called every 500ms or so, otherwise a timer in the
   // interface turns the outputs off. A good way to guarantee this is to
-  // use a timer interrupt. The least significant bit in each byte is O1.
+  // call this from the loop() function or use a timer interrupt. The least
+  // significant bit in each byte is output o1.
   //
   // When motors are attached, the FischerTechnik software sets the lower
-  // motor ports (O1, O3, O5, O7, i.e. bits 0, 2, 4, 6) when it shows
+  // motor ports (o1, o3, o5, o7, i.e. bits 0, 2, 4, 6) when it shows
   // the motors to run counter-clockwise. It sets the higher motor ports
-  // (O2, O4, O6, O8, i.e. bits 1, 3, 5, 7) when it shows the motors to run
+  // (o2, o4, o6, o8, i.e. bits 1, 3, 5, 7) when it shows the motors to run
   // clockwise.
   //
   // The first byte in the array is the interface that's directly connected
   // to the Arduino. Any further bytes represent the outputs on cascaded
   // interfaces on the expansion port of the first interface.
-  //
-  // Note: it's safe to specify more interfaces than are actually attached,
-  // it will just take slightly longer to process. However if the caller
-  // specifies fewer interfaces than are actually attached, the "unclaimed"
-  // interfaces will get outputs turned off and on based on garbage data.
   void SetOutputs(
-    unsigned num_interfaces,            // Number of interfaces
     const byte *values);                // 1 byte per interface (NULL=reset)
+
+public:
+  //-------------------------------------------------------------------------
+  // Set number of interfaces and then set outputs
+  void SetOutputs(
+    byte num_interfaces,                // Number of interfaces
+    const byte *values)                 // 1 byte per interface (NULL=reset)
+  {
+    SetNumInterfaces(num_interfaces);
+    SetOutputs(values);
+  }
 
 public:
   //-------------------------------------------------------------------------
@@ -232,14 +264,19 @@ public:
   //
   // The first byte in the array is the interface that's directly connected
   // to the Arduino. The lowest significant bit in each bit is input I1.
-  //
-  // Note: it's safe to specify more interfaces than are actually attached.
-  // The non-attached interfaces will appear to have their digital inputs
-  // set to 0. However if the caller specifies too few interfaces, the
-  // following analog read may fail.
   void GetInputs(
-    unsigned num_interfaces,            // Number of connected interfaces
     byte *values);                      // One byte per interface
+
+public:
+  //-------------------------------------------------------------------------
+  // Set number of interfaces and then set outputs
+  void GetInputs(
+    byte num_interfaces,                // Number of interfaces
+    byte *values)                       // One byte per interface
+  {
+    SetNumInterfaces(num_interfaces);
+    GetInputs(values);
+  }
 
 public:
   //-------------------------------------------------------------------------

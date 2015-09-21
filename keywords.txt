@@ -1,6 +1,7 @@
 Fishduino	KEYWORD1
 
-Setup	KEYWORD2
+SetNumInterfaces	KEYWORD2
+Reset	KEYWORD2
 SetOutputs	KEYWORD2
 GetInputs	KEYWORD2
 GetAnalog	KEYWORD2

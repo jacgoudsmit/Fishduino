@@ -8,7 +8,7 @@ void setup()
   Serial.begin(115200);
   Serial.println("Hello!");
 
-  if (!ft.Setup())
+  if (!ft.Reset())
   {
     Serial.println("Setup error!");
   }

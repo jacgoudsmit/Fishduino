@@ -39,13 +39,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   The tricky part is the connection from the PC to the Arduino: RoboPro only
   allows you to connect COM1..COM4 and internally uses those strings, so
   USB COM ports (which are only available as "\\.\COMxxx", not as "COMx" --
-  at least in my Windows 7 64-bit) so you really have to use a physical
-  serial port on the motherboard. Bummer.
+  at least in my Windows 7 64-bit) won't work, so you really have to use a
+  physical serial port on the motherboard. Bummer.
 
-  The good news: You can use a program such as VBox in which you can run
+  The good news: You can use a virtual computer in which you can run
   Windows (even a different version) and install RoboPro. Then you can set
   up a COM port in that virtual machine that redirects to a USB serial port
-  on the host. I tested this and it works.
+  on the host. I tested this with VBox and it works.
 */
 
 
