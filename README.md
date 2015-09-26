@@ -1,9 +1,14 @@
-fishduino
+Fishduino
 =========
 
 An Arduino library to control the FischerTechnik Robotics Parallel interface.
 
-I recently purchased a FischerTechnik Computing set (30554) from eBay with a second-generation parallel FischerTechnik Computing Interface (30520). This interface allowed a computer to control up to 4 motors and read up to 8 digital inputs and two analog inputs. It was connected to a computer with a long 20-pin ribbon cable and a small adapter that was different for each computer: there was one for the Apple II, one for the Commodore 64, one for any computer that has a centronics interface such as the IBM PC, etc. 
+To use this, create a Fishduino directory under your Libraries directory in your Arduino development directory, and save/extract all files there. For example, if you're using Windows, you should end up with the files fishduino.cpp, fishduino.h and keywords.txt in directory "My Documents\Arduino\libraries\Fishduino".
+
+What is this?
+-------------
+
+I recently purchased a FischerTechnik Computing set (30554) from eBay with a second-generation parallel FischerTechnik Computing Interface (30520). This interface allowed a 1990s computer to control up to 4 motors and read up to 8 digital inputs and two analog inputs. It was connected to a computer with a long 20-pin ribbon cable and a small adapter that was different for each computer: there was one for the Apple II, one for the Commodore 64, one for any computer that has a centronics interface such as the IBM PC, etc. 
 
 According to the web page at [1], the 30520 interface was introduced in 1991 as successor to the 30566 from 1984. Both the 30520 and the 30566 were "dumb" interfaces: they have a few shift registers, latches and timers, and the computer is expected to bitbang pins on the interface to do all the heavy work [2].
 
@@ -17,14 +22,11 @@ If you want to use the 30520 interface with the current (commercial) "RoboPro" s
 
 At a later time, a sketch may be implemented that will emulate the FishX1 protocol which is used by newer FischerTechnik interfaces. The protocol is partially documented in the documentation included in [3] and partially further reverse-engineered at [4]. Once that is done, the RoboPro software can be connected to the Arduino to control your hardware via the 30520 interface, and you won't have to do the detour via a VM that's necessary because RoboPro doesn't allow USB serial ports with the 30420. Functionalities such as downloading the firmware and downloading a program to run in offline mode won't be possible because the Arduino is completely different from the processor in the Robo TX interface, but controlling the parallel interface via the Arduino in "online" mode should be possible.
 
-Jac Goudsmit
-2014-06-28 Initial
-2015-09-26 Updated
+Jac Goudsmit<br>
+2014-06-28 Initial<br>
+2015-09-26 Updated<br>
 
-[1] http://www.ftcommunity.de/ftComputingFinis/interpd.htm (German)
-
-[2] http://www.ftcommunity.de/ftComputingFinis/interfte.htm
-
-[3] http://www.fischertechnik.de/en/ResourceImage.aspx?raid=4979
-
+[1] http://www.ftcommunity.de/ftComputingFinis/interpd.htm (German)<br>
+[2] http://www.ftcommunity.de/ftComputingFinis/interfte.htm<br>
+[3] http://www.fischertechnik.de/en/ResourceImage.aspx?raid=4979<br>
 [4] http://forum.ftcommunity.de/viewtopic.php?f=8&t=1655
