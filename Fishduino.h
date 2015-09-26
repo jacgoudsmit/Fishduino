@@ -43,13 +43,13 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
   20-pole ribbon cable pinout
   ===========================
-  Signal directions relative to host (Arduino).
+  Signal directions relative to Arduino.
   The pin numbers on the PCB in the 30520 interface are printed
   backwards (20<->1, 19<->2 etc).
   The analog inputs (EX and EY) run from the Fischertechnik side of the
   interface to the computer, and then are looped back to two 556 timers on
   the interface. Two loopback wires must be installed (between pins 5 and 7,
-  and between pins 6 and 8) on the Arduino side of the grey ribbon cable to
+  and between pins 6 and 8) on the Arduino side of the gray ribbon cable to
   make the analog inputs work as expected. It may be possible to connect
   those pins directly to two analog input pins on the Arduino, but this is
   not supported by the library.
@@ -65,10 +65,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   |      19       |       2      |         |     | GND
   |      18       |       3      |    2    | IN  | DATA/COUNT IN
   |      17       |       4      |         |     | Not connected
-  |      16       |       5      |         |     | Connect to pin 14/7
-  |      15       |       6      |         |     | Connect to pin 13/8
-  |      14       |       7      |         |     | Connect from pin 16/5
-  |      13       |       8      |         |     | Connect from pin 15/6
+  |      16       |       5      |  --+    |     | Connect to pin 14/7
+  |      15       |       6      |  --|-+  |     | Connect to pin 13/8
+  |      14       |       7      |  --+ |  |     | Connect from pin 16/5
+  |      13       |       8      |  ----+  |     | Connect from pin 15/6
   |      12       |       9      |    3    | OUT | TRIGGER X
   |      11       |      10      |    4    | OUT | TRIGGER Y
   |      10       |      11      |    5    | OUT | DATA OUT
@@ -132,7 +132,7 @@ protected:
 
 private:
   //-------------------------------------------------------------------------
-  // Constructor helper
+  // Private function called during construction
   void Init(
     byte num_interfaces,
     byte pin_datacountin,
@@ -241,9 +241,9 @@ public:
   // (o2, o4, o6, o8, i.e. bits 1, 3, 5, 7) when it shows the motors to run
   // clockwise.
   //
-  // The first byte in the array is the interface that's directly connected
-  // to the Arduino. Any further bytes represent the outputs on cascaded
-  // interfaces on the expansion port of the first interface.
+  // The first byte in the array represents the interface that's directly
+  // connected to the Arduino. Any further bytes represent the outputs on
+  // cascaded interfaces on the expansion port of the first interface.
   void SetOutputs(
     const byte *values);                // 1 byte per interface (NULL=reset)
 
@@ -263,13 +263,13 @@ public:
   // Read the digital inputs from the interfaces
   //
   // The first byte in the array is the interface that's directly connected
-  // to the Arduino. The lowest significant bit in each bit is input I1.
+  // to the Arduino. The lowest significant bit in each bit is input i1.
   void GetInputs(
     byte *values);                      // One byte per interface
 
 public:
   //-------------------------------------------------------------------------
-  // Set number of interfaces and then set outputs
+  // Set number of interfaces and then get digital inputs
   void GetInputs(
     byte num_interfaces,                // Number of interfaces
     byte *values)                       // One byte per interface
@@ -283,11 +283,16 @@ public:
   // Get an analog input
   //
   // The return value is in microseconds. The R/C circuit in the interface
-  // is dimensioned to generate a maximum interval of about 2.8 milliseconds
-  // with a 5K potentiometer, but if no potentiometer is attached, the
-  // function will return with AnalogTimeout as result.
+  // is dimensioned to generate a maximum interval of about 2800 microseconds
+  // when a 5K potentiometer is attached.
+  //
+  // If no potentiometer is attached, the function will return with
+  // AnalogTimeout as result.
   //
   // Reminder: Analog inputs from cascaded interfaces cannot be read.
+  //
+  // Another reminder: you need to connect two wires to four pins of the
+  // ribbon cable to make the R/C circuit in the interface work correctly.
   unsigned                              // Returns time (us), see above
   GetAnalog(
     byte index);                        // 0=X, 1=Y
