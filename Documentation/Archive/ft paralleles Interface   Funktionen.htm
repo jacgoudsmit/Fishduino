@@ -1,0 +1,219 @@
+<html><head>
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<meta name="keywords" content="fischertechnik Computing, fischertechnik, Interface, Programmierung, Visual Basic, Delphi, Roboter">
+<meta name="description" content="fischertechnik Computing, Programme zum Betrieb der fischertechnik Interfaces und der fischertechnik Modelle">
+<link rel="stylesheet" type="text/css" href="ft%20paralleles%20Interface%20%20%20Funktionen_files/w3pages.css">
+<title>ft paralleles Interface : Funktionen</title>
+<meta name="Microsoft Border" content="tl, default">
+<link href="ft%20paralleles%20Interface%20%20%20Funktionen_files/socialwidgets.css" type="text/css" rel="stylesheet"></head>
+
+<body><!--msnavigation--><table border="0" cellpadding="0" cellspacing="0" width="100%"><tbody><tr><td>
+
+<div align="left">
+  <table bgcolor="#DCF2FF" border="0" width="100%">
+    <tbody><tr>
+      <td align="center" valign="middle" width="113"><img src="ft%20paralleles%20Interface%20%20%20Funktionen_files/logo6.gif" height="75" border="0" width="75"></td>
+      <td align="center" valign="middle" width="570">
+        <h1>Manual Pages
+        </h1>
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2" align="center" bgcolor="#3399FF" width="100%">
+ftComputing :
+Programme für die fischertechnik-Interfaces und -konstruktionskästen</td>
+    </tr>
+    <tr>
+      <td colspan="2" align="center" width="100%">
+<div align="center">
+  <center>
+  <table border="1" bordercolor="#3399FF" cellpadding="3" cellspacing="0" width="500">
+    <tbody><tr>
+      <td align="center"><a href="http://www.ftcommunity.de/ftComputingFinis/fishneu.htm">NEU</a></td>
+      <td align="center"><a href="http://www.ftcommunity.de/ftComputingFinis/compute.htm">Computing</a></td>
+      <td align="center"><a href="http://www.ftcommunity.de/ftComputingFinis/fishdlls.htm">DLLs</a></td>
+      <td align="center"><a href="http://www.ftcommunity.de/ftComputingFinis/modelle.htm">Modelle</a></td>
+      <td align="center"><a href="http://www.ftcommunity.de/ftComputingFinis/download.htm">Downloads</a></td>
+      <td align="center"><a href="http://www.ftcommunity.de/ftComputingFinis/sitemape.htm">English Pages</a></td>
+    </tr>
+  </tbody></table>
+  </center>
+</div>
+      </td>
+    </tr>
+  </tbody></table>
+</div>
+
+</td></tr><!--msnavigation--></tbody></table><!--msnavigation--><table border="0" cellpadding="0" cellspacing="0" width="100%"><tbody><tr><td valign="top" width="1%">
+
+<div align="left">
+  <table border="0">
+    <tbody><tr>
+      <td>&nbsp;&nbsp;</td>
+    </tr>
+  </tbody></table>
+</div>
+
+<div align="left">
+  <table bgcolor="#DCF2FF" border="3" bordercolor="#3399FF" cellpadding="3" width="100">
+    <tbody><tr>
+      <td><i>ftComputing.de</i></td>
+    </tr>
+    <tr>
+      <td><nobr><a href="http://www.ftcommunity.de/ftComputingFinis/index.htm">Home</a></nobr><br><nobr><a href="http://www.ftcommunity.de/ftComputingFinis/sitemapeold.htm">Back</a></nobr></td>
+    </tr>
+    <tr>
+      <td><a href="http://www.ftcommunity.de/ftComputingFinis/sitemap.htm">Sitemap</a><br>
+        <a href="http://www.ftcommunity.de/ftComputingFinis/indexx.htm">Index</a><br>
+        <a href="http://www.ftcommunity.de/ftComputingFinis/links.htm">Links</a><br>
+        <a href="http://www.ftcommunity.de/ftComputingFinis/urheber.htm">Impressum</a></td>
+    </tr>
+    <tr>
+      <td><a href="http://www.ftcommunity.de/ftComputingFinis/urheber.htm#Mail">Mail</a></td>
+    </tr>
+  </tbody></table>
+</div>
+
+</td><td valign="top" width="24"></td><!--msnavigation--><td valign="top">&nbsp;
+    <h3>Functions of the parallel interface 30520</h3>
+    <font face="Arial"><p>pages 27 and 28 from the fischertechnik manual 30566 <br>
+    "Interface für den Atari ST Computer". With kindly permission of fischerwerke.</p>
+    <p>If you use the fischertechnik computing software or write programs yourself using
+    umFish.DLL or FishFace.DLL's (in the further text : machine language program), most likely
+    you will not need the information that follows. If, however, you intend to write the
+    programs on a system other than Windows, would like to speed them up through complex
+    procedures in machine language, wish to extend the functions of the interface or simply
+    want to glimpse behind the scenes, then the following information will most certainly be
+    helpful. In this case, however, you should have a basic knowledge of machine language and
+    digital electronics, since the is about the "bits and pieces".</p>
+    <p>The fischertechnik interface handles a number of tasks which we would like to discuss
+    with the aid of the block diagram. <img src="ft%20paralleles%20Interface%20%20%20Funktionen_files/ftblock.jpg" alt="fischertechnik Computing : parallel interfface block diagram" align="left" height="434" hspace="3" vspace="3" width="455">On the picture ftblock.jpg you see on the left the
+    signals from and to the computer. Note how little they have in common with outputs M1 to
+    M4 and inputs E1 to E8 and EX and EY. The reason for this is that the number of data lines
+    available at the computer port is significantly lower than the number of lines required on
+    the model side of the interface. This limited number of data lines must therefore be
+    employed in such way as to control all signals on the modelside. The concept employed is
+    that of multiple use of the data lines with the aid of shift registers. In this way, for
+    example, only three data lines are required for controlling the output. A parallel
+    connection scheme would have required eight data lines. Let's take a close look at the
+    output at connections M1 to M4. The data lines required are designated DATA OUT, CLOCK and
+    LOAD OUT. If there is an output, the data for all four motors are transmitted in each
+    case. i.e. a whole byte (a byte because each of the for motors requires two bits for
+    controlling the direction of rotation). The motor outputs to which the signal does not
+    apply are thus once again supplied with the current state which is buffered in the
+    computer as an output word.</p>
+    <p>For output, the bits of the output word are sequentially (with the most significant bit
+    first) fed to the DATA OUT line. When the signal at the CLOCK output goes from low to
+    high, the bit is transferred to a shift register. Then the next bit DATA OUT follows, and
+    is likewise transferred to the shift register with the next CLOCK pulse. The previous bit
+    has been shifted one position to the right in the shift register in order to make room for
+    the subsequent bit. After a total of eight such data transfers, the whole output word has
+    been transferred to the shift register. The bit first transferred has been shifted all the
+    way to the right in the course of the data transfer. Thus far, the activity in the shift
+    register has not had any effect on its outputs. The output amplifiers are not controlled
+    directly by the shift register, but rather via an in-line storage register which is
+    integrated in the shift register module. Only when the LOAD OUT output goes from low to
+    high are the data transferred to the storage register. The timing of the signals is shown
+    in the pulse diagram <img src="ft%20paralleles%20Interface%20%20%20Funktionen_files/ftimpuls.jpg" alt="fischertechnik Computing : parallel Interface pulse diagram" align="left" height="306" hspace="3" vspace="3" width="414">. </p>
+    <p>Whether the data are fed to the power amplifiers, however, depends on the enabling
+    control of the memory module. The enabling circuit is controlled by a monostable
+    multivibrator. This circuit generates an enabling signal with a duration of half a second
+    if there is a pulse on the CLOCK line. We may assume that the power amplifiers receive a
+    signal first since the data were just transferred with the aid of the CLOCK line. If no
+    more data are transmitted within the next half second, however, the monostable
+    multivibrator will flip back to the stable state and the enabling signal is removed. The
+    monostable multivibrator, by the way, can be retriggered, i.e. the time of half a second
+    is always calculated from the time of the last CLOCK pulse.</p>
+    <p>The monostable multivibrator also has an enabling input. The output to the amplifiers
+    can be immediately inhibited via this input. On the fischertechnik interface this occurs
+    when an invalid data pattern, which would command the connected motor to simultaneously
+    turn clockwise and counterclockwise, applies at the output of the storage register. We
+    will proceed with the transfer of the digital signals to inputs E1 to E8. Basically the
+    input is a reversal of the output process described above. The output signal LOAD IN
+    causes the transfer of the data applying at the inputs to the input shift register. This
+    always invoices all eight inputs, even through only one of them is to be interrogated.
+    When applying to the shift register, each pulse of the CLOCK line will cause the transfer
+    of one bit on the input line DATA IN, the bit from E8 first and the one from E1 last. By
+    testing this line, the computer can "collect" the bits and reassemble them into
+    a data word. The desired bit is subsequently filtered out and transferred to the program.</p>
+    <p>Since the same CLOCK line is used for data transmission as for output, the digital
+    input will also activate the monostable multivibrator, which controls the enabling signal
+    for the output data. Malfunctioning of the output shift register caused by the multiple
+    function of the CLOCK line is not to be expected since the current output data are not
+    contained in the output shift register, but in the storage register. The former is
+    controlled by the CLOCK pulses, unlike the latter, which only reacts to the LOAD OUT
+    signal.</p>
+    <p>That leaves the analog inputs EX and EY. The potentiometers or other varable resitors
+    are used as the timing element in two additional monostable multivibrator circuits. A low
+    resistance value is converted to a short pulse, a high resistance value to a pulse with a
+    long duration. The pulse itself is triggered by the starting signals TRTGGER-X and
+    TRIGGER-Y (with negative logic), restrictively, and the appears an the COUNT IN line. A
+    machine language program determines the pulse duration by means of the number of loops
+    which can be executed during the duration of the pulse. This number is fed back to the
+    program which calls this function. You can see that there is no direct relationship
+    between the analog value and the angle position of the resistance of the potentiometer.
+    The clock rate of the processor, however, is involved. There is a linear realationship
+    between the number determined in the end and the resistance. If required, the value must
+    be converted into angular degrees or resistance values by means of calibration.</p>
+    <p>At this point, we will briefly review the connection between the interface and the
+    Computer. As you know form the section about connection the interface, the computers's
+    parallel printer port is used for this purpose. Out of the eight data lines of this
+    interface, the lower six are used for the output signals discussed above (Also refer to
+    the following table).</p>
+    </font><p><font face="Arial">The input lines pose a slight problem in that the parallel printer interface has only
+    one input line available applying to all PC's. This is the active signal from the printer,
+    BUSY. There is no conflict, however, if all input lines are combined using an OR circuit.
+    Since the machine language program "knows" which input function it has
+    requested, it has the capabiltiy of interpreting the signals on this one input line
+    correctly.</font></p>
+    <div align="center"><center><table bgcolor="#78DC87" border="0" cellpadding="2">
+      <tbody><tr>
+        <td>Interface Signal</td>
+        <td>Printer Signal</td>
+        <td>Pin Number</td>
+      </tr>
+      <tr>
+        <td bgcolor="#FFFFFF">LOAD OUT</td>
+        <td bgcolor="#FFFFFF">Data bit 0</td>
+        <td bgcolor="#FFFFFF">2</td>
+      </tr>
+      <tr>
+        <td>LOAD IN</td>
+        <td>Data bit 1</td>
+        <td>3</td>
+      </tr>
+      <tr>
+        <td bgcolor="#FFFFFF">DATA OUT</td>
+        <td bgcolor="#FFFFFF">Data bit 2</td>
+        <td bgcolor="#FFFFFF">4</td>
+      </tr>
+      <tr>
+        <td>CLOCK</td>
+        <td>Data bit 3</td>
+        <td>5</td>
+      </tr>
+      <tr>
+        <td bgcolor="#FFFFFF">TRIGGER-X</td>
+        <td bgcolor="#FFFFFF">Data bit 4</td>
+        <td bgcolor="#FFFFFF">6</td>
+      </tr>
+      <tr>
+        <td>TRIGGER-Y</td>
+        <td>Data bit 5</td>
+        <td>7</td>
+      </tr>
+      <tr>
+        <td bgcolor="#FFFFFF">DATA/COUNT IN</td>
+        <td bgcolor="#FFFFFF">Busy</td>
+        <td bgcolor="#FFFFFF">11</td>
+      </tr>
+      <tr>
+        <td>-</td>
+        <td>-</td>
+        <td>-</td>
+      </tr>
+    </tbody></table>
+    </center></div><p align="center"><font size="2"><em>Pins</em></font></p>
+&nbsp;<!--msnavigation--></td></tr><!--msnavigation--></tbody></table>
+
+</body></html>

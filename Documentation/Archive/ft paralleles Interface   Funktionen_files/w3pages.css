@@ -1,0 +1,25 @@
+/* fischertechnik Computing (c) Ulrich Müller 1.10.00 */
+
+BODY,P,H1,H2,H3,H4,UL,OL,LI,DIV,TD,TH,B,I {font-family: Verdana, Arial, Helvetica}
+BODY,P,DIV,TD,B,I,UL,OL,LI {font-size:10pt}
+BODY   {background-color:FFFFFF}
+BODY.I {background-color:3059E9}
+
+H1   {font-size:20pt; font-weight:700; color:3059E9; background-color:DCF2FF}
+H2   {font-size:16pt; font-weight:600; color:3059E9; background-color:DCF2FF}
+H3   {font-size:12pt; font-weight:700; color:3059E9; background-color:DCF2FF}
+H4   {font-size:10pt; font-weight:700; color:3059E9; background-color:DCF2FF}
+
+HR   {color:3059E9}
+HR.T {color:3059E9 background-color:DCF2FF}
+
+A:link      {font:10pt, Verdana, Arial, Helvetica; color:0066CC; text-decoration:none}
+A:active    {font:10pt, Verdana, Arial, Helvetica; color:FF0000; text-decoration:none}
+A:visited   {font:10pt, Verdana, Arial, Helvetica; color:CC3333; text-decoration:none}
+A:hover     {color:FFFFFF; background-color:0033FF}
+A.I:link    {font:10pt, Verdana, Arial, Helvetica; color:FFFFFF; text-decoration:none}
+A.I:active  {font:10pt, Verdana, Arial, Helvetica; color:FF0000; text-decoration:none}
+A.I:visited {font:10pt, Verdana, Arial, Helvetica; color:CCCCCC; text-decoration:none}
+A.I:hover   {color:FFFFFF; background-color:CC6666}
+
+TD.T  {background-color:DCF2FF}
