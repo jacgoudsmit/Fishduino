@@ -1,5 +1,5 @@
 /****************************************************************************
-Copyright (c) 2014, Jac Goudsmit
+Copyright (c) 2015, Jac Goudsmit
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

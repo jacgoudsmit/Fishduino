@@ -1,5 +1,5 @@
 /****************************************************************************
-Copyright (c) 2014, Jac Goudsmit
+Copyright (c) 2015, Jac Goudsmit
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -84,7 +84,22 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
   +---------------+--------------+---------+---------------------------------
 */
 
+
+/////////////////////////////////////////////////////////////////////////////
+// INCLUDES
+/////////////////////////////////////////////////////////////////////////////
+
+
+#ifndef _FISHDUINO_H_
+#define _FISHDUINO_H_
+
 #include <Arduino.h>
+
+
+/////////////////////////////////////////////////////////////////////////////
+// FISHDUINO
+/////////////////////////////////////////////////////////////////////////////
+
 
 class Fishduino
 {
@@ -144,13 +159,13 @@ private:
     byte pin_loadin)
   {
     // Initialize Arduino pin numbers for each pin on the interface
-    m_pin[DATACOUNTIN]    = pin_datacountin;
-    m_pin[TRIGGERX] = pin_triggerx;
-    m_pin[TRIGGERY] = pin_triggery;
-    m_pin[DATAOUT]  = pin_dataout;
-    m_pin[CLOCK]    = pin_clock;
-    m_pin[LOADOUT]  = pin_loadout;
-    m_pin[LOADIN]   = pin_loadin;
+    m_pin[DATACOUNTIN]  = pin_datacountin;
+    m_pin[TRIGGERX]     = pin_triggerx;
+    m_pin[TRIGGERY]     = pin_triggery;
+    m_pin[DATAOUT]      = pin_dataout;
+    m_pin[CLOCK]        = pin_clock;
+    m_pin[LOADOUT]      = pin_loadout;
+    m_pin[LOADIN]       = pin_loadin;
 
     // Reset outputs, initialize input
     Reset(num_interfaces);
@@ -298,3 +313,10 @@ public:
     byte index);                        // 0=X, 1=Y
 };
 
+
+/////////////////////////////////////////////////////////////////////////////
+// END
+/////////////////////////////////////////////////////////////////////////////
+
+
+#endif
