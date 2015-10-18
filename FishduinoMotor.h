@@ -80,6 +80,12 @@ public:
     M4 = 6
   };
 
+  enum Direction {
+    CCW = -1,
+    STOP = 0,
+    CW = 1
+  };
+
 public:
   //-------------------------------------------------------------------------
   // Constructor
@@ -119,7 +125,7 @@ public:
   // Note: this doesn't actually update the outputs, you need to call the
   // appropriate update function on the manager for that.
   void
-    Clockwise()
+  Clockwise()
   {
     m_mgr.SetOutputMask(m_intindex, m_cwmask, m_ccwmask);
   }
@@ -131,9 +137,62 @@ public:
   // Note: this doesn't actually update the outputs, you need to call the
   // appropriate update function on the manager for that.
   void
-    CounterClockwise()
+  CounterClockwise()
   {
     m_mgr.SetOutputMask(m_intindex, m_ccwmask, m_cwmask);
+  }
+
+public:
+  //-------------------------------------------------------------------------
+  // Start the motor in the given direction
+  //
+  // Note: this doesn't actually update the outputs, you need to call the
+  // appropriate update function on the manager for that.
+  void
+  Rotate(
+    Direction dir)
+  {
+    byte m;
+
+    if (dir == CCW)
+    {
+      m = m_ccwmask;
+    }
+    else if (dir == CW)
+    {
+      m = m_cwmask;
+    }
+    else
+    {
+      m = 0;
+    }
+
+    m_mgr.SetOutputMask(m_intindex, m, (m_ccwmask | m_cwmask) ^ m);
+  }
+
+public:
+  //-------------------------------------------------------------------------
+  // Get current state
+  Direction
+  GetState()
+  {
+    Direction result = STOP;
+    byte m = (m_mgr.GetOutputMask(m_intindex) & (m_ccwmask | m_cwmask));
+
+    if (m == m_ccwmask)
+    {
+      result = CCW;
+    }
+    else if (m == m_cwmask)
+    {
+      result = CW;
+    }
+    else
+    {
+      result = STOP;
+    }
+
+    return result;
   }
 };
 
@@ -141,5 +200,6 @@ public:
 /////////////////////////////////////////////////////////////////////////////
 // END
 /////////////////////////////////////////////////////////////////////////////
+
 
 #endif

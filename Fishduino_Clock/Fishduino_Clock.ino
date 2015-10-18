@@ -53,8 +53,8 @@ FishduinoMgr        fishduino;
 FishduinoMotor      motor_min( fishduino, 0, FishduinoMotor::M1);
 FishduinoMotor      motor_adj( fishduino, 0, FishduinoMotor::M2);
 FishduinoInPin      sensor_m(  fishduino, 0, FishduinoInPin::I1); // Cycles once/minute
-FishduinoInPin      sensor_h(  fishduino, 0, FishduinoInPin::I2); // Cycles once/hour
-FishduinoInPin      sensor_h12(fishduino, 0, FishduinoInPin::I3); // Cycles once/12 hours
+FishduinoInPin      sensor_h(  fishduino, 0, FishduinoInPin::I3); // Cycles once/hour
+FishduinoInPin      sensor_h12(fishduino, 0, FishduinoInPin::I2); // Cycles once/12 hours
 
 // Actual time (that we're supposed to display)
 byte                actual_hour;        // Hours mod 12 (i.e. 0..11)
@@ -70,6 +70,43 @@ byte                clock_min  = 255;   // Minutes; unknown=255
 /////////////////////////////////////////////////////////////////////////////
 
 
+//---------------------------------------------------------------------------
+// Logic to control a motor with a sensor
+//
+// Runs the motor in the given direction whenever, and as long as the given
+// sensor is on. When the sensor turns off, the motor is stopped, but once
+// the motor is stopped, its direction isn't changed.
+//
+// This can be called repeatedly (with calls to the Fishduino::Update 
+// function in between) to implement an axis (DOF) that returns to its
+// original position once it gets started, and only requires one start
+// command.
+void
+RotateUntilSensor(
+  FishduinoMotor &motor,                // Motor to use
+  FishduinoMotor::Direction dir,        // Direction to rotate to return home
+  FishduinoInPin &sensor,               // Input pin to check
+  bool off,                             // true=run until all pins off
+  bool on)                              // true=run until all pins on
+{
+  if (sensor.Is(off, on))
+  {
+    // Stop the motor if it just reached the desired state.
+    // If it was already in the desired state, don't change the state, so
+    // that a single command from elsewhere to start the motor is enough to
+    // keep it running until the desired state.
+    if (!sensor.Was(off, on))
+    {
+      motor.Stop();
+    }
+  }
+  else
+  {
+    // The sensor is in another state, keep the motor running
+    motor.Rotate(dir);
+  }
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -81,20 +118,21 @@ void loop()
 {
   fishduino.Update();
 
-  // If the minute sensor turned off, turn the minute motor off
-  if (sensor_m.WasOn() && sensor_m.IsOff())
-  {
-    motor_min.Stop();
-  }
-
+  RotateUntilSensor(motor_min, FishduinoMotor::CW, sensor_m, true, false);
 
   static unsigned long m = millis() - 60001;
   unsigned long c = millis();
 
   if (c - m > 60000)
   {
+
     motor_min.Clockwise();
 
     m = c;
   }
 }
+
+
+/////////////////////////////////////////////////////////////////////////////
+// END
+/////////////////////////////////////////////////////////////////////////////

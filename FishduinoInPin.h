@@ -143,10 +143,44 @@ public:
 
 public:
   //-------------------------------------------------------------------------
+  // Check if pins in our mask have the given state
+  //
+  // If both parameters are true, the function returns true if the pins in
+  // the mask are either all on or all off, false if some pins are on and
+  // some are off.
+  //
+  // If both parameters are false, the function returns true if and only if
+  // some pins are on but not none and not all.
+  bool
+  Is(
+    bool off,                           // True=return true if all pins off
+    bool on)                            // True=return true if all pins on
+  {
+    bool result;
+    byte b = m_mgr.GetInputMask(m_intindex) & m_mask;
+
+    if (b == 0)
+    {
+      result = off;
+    }
+    else if (b == m_mask)
+    {
+      result = on;
+    }
+    else
+    {
+      result = ((!on) && (!off));
+    }
+
+    return result;
+  }
+
+public:
+  //-------------------------------------------------------------------------
   // Check if pins in our mask are all off
   bool IsOff()
   {
-    return (m_mgr.GetInputMask(m_intindex) & m_mask) == 0;
+    return Is(true, false);
   }
 
 public:
@@ -154,27 +188,50 @@ public:
   // Check if pins in our mask are all on
   bool IsOn()
   {
-    return (m_mgr.GetInputMask(m_intindex) & m_mask) == m_mask;
+    return Is(false, true);
   }
 
 public:
   //-------------------------------------------------------------------------
-  // Check if SOME pins in our mask BUT NOT ALL are on
+  // Check if pins in our mask had the given state before the last update
   //
-  // This is more efficient than testing for On and Off by two separate calls
-  bool IsPartialOn()
+  // If both parameters are true, the function returns true if the pins in
+  // the mask were either all on or all off, false if some pins were on and
+  // some were off.
+  //
+  // If both parameters are false, the function returns true if and only if
+  // some pins were on but not none and not all.
+  bool
+  Was(
+    bool off,                           // True=return true if all pins off
+    bool on)                            // True=return true if all pins on
   {
-    byte b = m_mgr.GetInputMask(m_intindex) & m_mask;
-    
-    return (b != 0) && (b != m_mask);
+    bool result;
+    byte b = m_mgr.GetPrevInputMask(m_intindex) & m_mask;
+
+    if (b == 0)
+    {
+      result = off;
+    }
+    else if (b == m_mask)
+    {
+      result = on;
+    }
+    else
+    {
+      result = ((!on) && (!off));
+    }
+
+    return result;
   }
+
 
 public:
   //-------------------------------------------------------------------------
   // Check if pins in our mask were all off before the last update
   bool WasOff()
   {
-    return (m_mgr.GetPrevInputMask(m_intindex) & m_mask) == 0;
+    return Was(true, false);
   }
 
 public:
@@ -182,19 +239,7 @@ public:
   // Check if pins in our mask were all on before the last update
   bool WasOn()
   {
-    return (m_mgr.GetPrevInputMask(m_intindex) & m_mask) == m_mask;
-  }
-
-public:
-  //-------------------------------------------------------------------------
-  // Check if SOME pins in our mask BUT NOT ALL were on before last update
-  //
-  // This is more efficient than testing for On and Off by two separate calls
-  bool WasPartialOn()
-  {
-    byte b = m_mgr.GetPrevInputMask(m_intindex) & m_mask;
-
-    return (b != 0) && (b != m_mask);
+    return Was(false, true);
   }
 };
 
