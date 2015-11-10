@@ -61,7 +61,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class FishduinoMotor
 {
+#ifndef NDEBUG
+public:
+#else
 protected:
+#endif
   FishduinoMgr   &m_mgr;                // Manager to work with
   byte            m_intindex;           // Interface index
   byte            m_ccwmask;            // Bits for counterclockwise

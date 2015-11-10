@@ -65,7 +65,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 class FishduinoMgr : public Fishduino
 {
+#ifndef NDEBUG
+public:
+#else
 protected:
+#endif
   volatile byte     m_outputs[MaxInterfaces];   // Digital outputs
   volatile byte     m_inputs[MaxInterfaces];    // Digital inputs
   byte              m_previnputs[MaxInterfaces];// Input cache
@@ -131,11 +135,45 @@ public:
 public:
   //-------------------------------------------------------------------------
   // Update the internal data from the inputs
+  //
+  // If the debounce count is given, the function keeps reading the inputs
+  // until it gets the same readings 
   void
-  UpdateInputs()
+  UpdateInputs(
+    unsigned debouncecount = 0,         // Need this many identical readings
+    unsigned delayus = 0)               // Delay between readings (useconds)
   {
-    memcpy(m_previnputs, (const void *)m_inputs, sizeof(m_inputs));
-    GetInputs((byte *)m_inputs);
+    unsigned counter = 0;
+    byte curinputs[MaxInterfaces];
+    bool init = false;
+
+    memcpy(m_previnputs, (const void *)m_inputs, sizeof(m_previnputs));
+
+    for (;;)
+    {
+      GetInputs((byte *)m_inputs);
+
+      if (counter >= debouncecount)
+      {
+        break;
+      }
+
+      if ((init) && (!memcmp(curinputs, (const void *)m_inputs, sizeof(curinputs))))
+      {
+        ++counter;
+      }
+      else
+      {
+        memcpy(curinputs, (const void *)m_inputs, sizeof(curinputs));
+        counter = 0;
+        init = true;
+      }
+
+      if (delayus)
+      {
+        delayMicroseconds(delayus);
+      }
+    }
   }
 
 public:
@@ -280,7 +318,7 @@ public:
   GetOutputMask(
     byte intindex)                      // Interface index, 0=first
   {
-    bool result = 0;
+    byte result = 0;
 
     if (intindex < MaxInterfaces)
     {

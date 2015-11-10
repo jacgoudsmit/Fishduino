@@ -66,7 +66,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // pins at once.
 class FishduinoOutPin
 {
+#ifndef NDEBUG
+public:
+#else
 protected:
+#endif
   FishduinoMgr   &m_mgr;                // Manager to work with
   byte            m_intindex;           // Interface index
   byte            m_mask;               // Bits to set/reset

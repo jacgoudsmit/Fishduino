@@ -66,6 +66,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // digital input pins.
 class FishduinoInPin
 {
+#ifndef NDEBUG
+public:
+#else
+protected:
+#endif
 protected:
   FishduinoMgr   &m_mgr;                // Manager to work with
   byte            m_intindex;           // Interface index

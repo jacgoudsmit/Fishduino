@@ -28,11 +28,13 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ****************************************************************************/
 
+
 #include <Arduino.h>
 
 #include "Fishduino.h"
 
-//-------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------
 // Initialize
 bool                                  // Returns True=success False=failure
 Fishduino::Reset(
@@ -86,7 +88,8 @@ Fishduino::Reset(
   return result;
 }
 
-//-------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------
 // Set the outputs of the interfaces
 void Fishduino::SetOutputs(
   const byte *values)                 // 1 byte per interface (NULL=reset)
@@ -124,7 +127,8 @@ void Fishduino::SetOutputs(
   // - LOAD OUT is LOW
 }
 
-//-------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------
 // Read the digital inputs from the interfaces
 void Fishduino::GetInputs(
   byte *values)                       // One byte per interface
@@ -162,7 +166,8 @@ void Fishduino::GetInputs(
   // - LOAD IN is LOW
 }
 
-//-------------------------------------------------------------------------
+
+//---------------------------------------------------------------------------
 // Get an analog input
 unsigned                              // Returns time (us), see above
 Fishduino::GetAnalog(
@@ -188,3 +193,7 @@ Fishduino::GetAnalog(
   return t;
 }
 
+
+/////////////////////////////////////////////////////////////////////////////
+// END
+/////////////////////////////////////////////////////////////////////////////
